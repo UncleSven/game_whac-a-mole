@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="whac-a-mole.css">
+
+    <title>Game: Whac-A-Mole - by UncleSven</title>
+</head>
+<body>
+<main>
+    <h1>Game: Whac-A-Mole - by UncleSven</h1>
+    <br>
+    <div id="app">
+        <template v-if="true">
+
+            <div id="console">
+
+                <div id="infobar">
+                    <div>Level: {{ gameLevel }}</div>
+                    <div>Score: {{ gameScore }}</div>
+                    <div>Player: {{ player.name }}</div>
+                    <div>Timer: <span v-show="gameView === 'playground'">-</span>{{ gameTimer }} seconds</div>
+                </div><!-- infobar -->
+
+                <div id="playerboard" v-if="gameView === 'playerboard'">
+                    <img id="landscape1" src="media/element-landscape.jpg" alt="Landscape">
+                    <template v-if="player.name">
+                        <div id="scorecard-headline">
+                            <span v-if="gameOver.visible">
+                                {{ gameOver.message }}
+                            </span>
+                            <span v-else>
+                                Your Score Board
+                            </span>
+                        </div>
+                        <div id="scorecard">
+                            <div :class="{ puls: level === gameLevelCounter - 1 }" v-for="level of gameLevelMax">
+                                Level {{ level }}:<br>{{ player.scores[level - 1] }}
+                            </div>
+                            <div>
+                                Total Score:<br>{{ player.totalScore }}<br>
+                            </div>
+                        </div>
+                        <div id="playbutton">
+                            <template v-if="gameLevelCounter > gameLevelMax">
+                                <button @click="gameGoAgain">Play again</button>
+                            </template>
+                            <template v-else>
+                                <button @click="gameGo">Play Level {{ gameLevel }}</button>
+                            </template>
+                        </div>
+                    </template>
+                </div><!-- playerboard -->
+
+                <div id="highscore" v-if="gameView === 'highscore'">
+                    <img id="landscape2" src="media/element-landscape.jpg" alt="Landscape">
+                    <div id="highscore-headline">
+                        Highscore
+                    </div>
+                    <div id="highscore-table">
+                        <template v-for="hs of gameHighscores" :key="hs.id">
+                            <div>
+                                <div>{{ hs.player }}</div>
+                                <div>{{ hs.totalScore }}</div>
+                                <div>{{ timestampToLocaleString(hs.timestamp) }}</div>
+                            </div>
+                        </template>
+                    </div>
+                </div><!-- highscore -->
+
+                <div id="playground" ref="playground"
+                     @mousemove.prevent="hammerMovement"
+                     @mousedown.prevent="hammerSmackDown"
+                     @mouseup.prevent="hammerSmackUp"
+                     v-if="gameView === 'playground'"
+                >
+                    <img id="landscape" src="media/element-landscape.jpg" alt="Landscape">
+                    <div id="hammer" ref="hammer" :class="hammerClass">
+                        <img src="media/element-hammer.png" alt="Hammer">
+                    </div><!-- hammer -->
+                    <!-- targets -->
+                    <template v-for="target of targets" :key="target.id">
+                        <div class="pit" :id="target.id">
+                            <div class="mole" @mousedown.prevent="knockOut(target)">
+                                <img :class="[gameLevelClass, { visible: target.visible }]"
+                                     src="media/element-mole.svg" alt="Mole">
+                            </div>
+                            <img src="media/element-dirt.svg" class="dirt" :class="{ visible: target.visible }"
+                                 alt="Dirt">
+                        </div>
+                    </template><!-- targets -->
+                </div><!-- playground -->
+
+                <div id="settings">
+                    <div v-if="player.name">
+                        <span class="cursor-pointer" @click="gameReset" title="Reset Game">[ Reset Game ]</span>
+                    </div>
+                    <div v-else>
+                        <label for="player-input">Enter Player: </label>
+                        <span><input id="player-input" v-model="playerInputValue">&nbsp;</span>
+                        <span class="cursor-pointer" @click="playerInput">[ ok ]</span>
+                    </div>
+                    <template v-if="gameView !== 'playground'">
+                        <div>
+                            <span>Music is: </span>
+                            <span class="cursor-pointer" title="turn on/off music"
+                                  @click="toggleMusic=!toggleMusic"
+                            >[ {{ toggleMusicState }} ]</span>
+                        </div>
+                        <div>
+                            <span>Sound is: </span>
+                            <span class="cursor-pointer" title="turn on/off sound"
+                                  @click="toggleSound=!toggleSound"
+                            >[ {{ toggleSoundState }} ]</span>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <div></div>
+                        <div></div>
+                    </template>
+                    <div>
+                        &copy; '22 UncleSven
+                    </div>
+                </div><!-- settings -->
+
+            </div><!-- console -->
+
+        </template>
+    </div>
+</main>
+
+<!-- Have a look:
+https://www.w3schools.com/jsref/met_win_setinterval.asp
+https://stackoverflow.com/questions/3583724/how-do-i-add-a-delay-in-a-javascript-loop
+-->
+
+<script type="module">
+    import {computed, createApp, reactive, ref} from './vue3.esm-browser.js';
+
+    const gameDuration = 60;
+    const gameHighscoreMax = 10;
+    const gameHighscores = ref([]);
+    const gameHighscoreStorageKey = 'game-whac-a-mole-highscore';
+    const gameLevel = computed(() => {
+        return gameLevelCounter.value > gameLevelMax ? 1 : gameLevelCounter.value;
+    });
+    const gameLevelClass = computed(() => {
+        return 'level' + gameLevel.value;
+    });
+    const gameLevelCounter = ref(1);
+    const gameLevelMax = 3;
+    const gameMoleKnockOutTime = 2.4; // Seconds
+    const gameOver = reactive({visible: false, message: 'Hooray'});
+    const gameScore = ref(0);
+    const gameTimer = ref(gameDuration);
+    const gameView = ref('highscore');
+    const hammer = ref(null); // div
+    const hammerClass = reactive({down: false, up: true});
+    const music = {
+        level1: {audio: new Audio('./media/music-level1.mp3'), volume: 0.2},
+        level2: {audio: new Audio('./media/music-level2.mp3'), volume: 0.2},
+        level3: {audio: new Audio('./media/music-level3.mp3'), volume: 0.2},
+    };
+    const playerInputValue = ref('');
+    const playerTotalScore = computed(() => {
+        let totalScore = 0;
+        player.scores.forEach((points) => {
+            totalScore += points;
+        });
+
+        return totalScore;
+    });
+    const player = reactive({
+        name: null,
+        scores: [
+            0, // level 1
+            0, // level 2
+            0, // level 3
+        ],
+        totalScore: playerTotalScore,
+    });
+    const playground = ref(null); // div
+    const sound = {
+        highscore: {
+            audio: new Audio('./media/sound-highscore.wav'),
+            currentTime: 0,
+            volume: 0.1,
+        },
+        laughingCartoon: {
+            audio: new Audio('./media/sound-laughing-cartoon.wav'),
+            currentTime: 0,
+            volume: 0.1,
+        },
+        lost: {
+            audio: new Audio('./media/sound-lost.wav'),
+            currentTime: 0,
+            volume: 0.1,
+        },
+        ranked: {
+            audio: new Audio('./media/sound-ranked.wav'),
+            currentTime: 0,
+            volume: 0.1,
+        },
+        tada: {
+            audio: new Audio('./media/sound-tada.wav'),
+            currentTime: 0,
+            volume: 0.1,
+        },
+    };
+    const targets = reactive([
+        {hit: 0, id: 'pit01', points: 6.0, visible: false},
+        {hit: 0, id: 'pit02', points: 5.5, visible: false},
+        {hit: 0, id: 'pit03', points: 5.0, visible: false},
+        {hit: 0, id: 'pit04', points: 4.5, visible: false},
+        {hit: 0, id: 'pit05', points: 4.0, visible: false},
+        {hit: 0, id: 'pit06', points: 3.5, visible: false},
+        {hit: 0, id: 'pit07', points: 2.5, visible: false},
+        {hit: 0, id: 'pit08', points: 2.0, visible: false},
+        {hit: 0, id: 'pit09', points: 1.5, visible: false},
+        {hit: 0, id: 'pit10', points: 1.0, visible: false},
+    ]);
+    const toggleMusic = ref(true);
+    const toggleMusicState = computed(() => {
+        return toggleMusic.value ? 'on' : 'off';
+    });
+    const toggleSound = ref(true);
+    const toggleSoundState = computed(() => {
+        return toggleSound.value ? 'on' : 'off';
+    });
+
+    // Global game engine values
+    let gameId = new Date().getTime();
+    let gameLevelScore;
+    let gameStartTime;
+    let iForMoles;
+    let letSoundPlay;
+
+    function gameEngine1() {
+        console.log('Game Engine One');
+
+        let intervalCountdown;
+        let intervalReanimateMoles;
+        let timeoutAnimateMoles;
+
+        // Runs recursive until all moles are animated (from high to low)
+        function animateMoles() {
+            timeoutAnimateMoles = setTimeout(function () {
+                let mole = targets[iForMoles - 1];
+                mole.visible = true;
+                console.log('Mole ' + mole.id + ' has been animated');
+
+                iForMoles--;
+                if (iForMoles > 0) {
+                    animateMoles();
+                }
+            }, 1000);
+        }
+
+        function countDown() {
+            intervalCountdown = setInterval(function () {
+                let now = new Date().getTime();
+                let pastSeconds = Math.floor((now - gameStartTime) / 1000);
+                let remainingTime = gameDuration - pastSeconds;
+
+                // Reactive vue
+                gameTimer.value = remainingTime;
+
+                if (remainingTime <= 0) {
+                    console.log('Game Over Level ' + gameLevel.value);
+                    stop();
+                    gameStop();
+                }
+            }, 1000);
+        }
+
+        function reanimateMoles() {
+            intervalReanimateMoles = setInterval(function () {
+                targets.forEach(function (mole) {
+                    console.log('Reanimate Moles');
+
+                    // OR when game has started and all moles are still invisible
+                    if (mole.visible || (!mole.visible && mole.hit === 0)) {
+                        return;
+                    }
+
+                    // Mole keeps knocked out for a while
+                    let now = new Date().getTime();
+                    let pastSeconds = (now - mole.hit) / 1000;
+                    if (pastSeconds > gameMoleKnockOutTime) {
+                        soundControl().playMoleGiggling();
+                        mole.visible = true;
+                        console.log('Mole ' + mole.id + ' has been reanimated after ' + pastSeconds + 'seconds');
+                    }
+                });
+            }, 1000);
+        }
+
+        function run() {
+            countDown();
+            animateMoles();
+            reanimateMoles();
+            console.log('Run Game Engine One');
+        }
+
+        function stop() {
+            clearInterval(intervalCountdown);
+            clearInterval(intervalReanimateMoles);
+            clearTimeout(timeoutAnimateMoles);
+
+            // Stop animation for each Mole
+            targets.forEach(function (target) {
+                target.hit = 0;
+                target.visible = false;
+                console.log('Mole ' + target.id + ' has been hidden');
+            });
+
+            console.log('Stopped Game Engine One');
+        }
+
+        return {
+            run,
+            stop,
+        };
+    }
+
+    const gameEngine = gameEngine1();
+
+    function evaluateHighscore() {
+        console.log('Evaluate Highscore');
+
+        let size = gameHighscores.value.length;
+        let rank = size > 0 ? -1 : 1;
+
+        for (let i = 0; i < size; i++) {
+            if (gameHighscores.value[i].id === gameId) {
+                rank = i + 1;
+                break;
+            }
+        }
+
+        switch (rank) {
+            case -1:
+                soundControl().playLost();
+                gameOver.message = 'You lose';
+                break;
+            case 1:
+                soundControl().playHighscore();
+                gameOver.message = 'Highscore';
+                break;
+            default:
+                soundControl().playRanked();
+                gameOver.message = 'Rank ' + rank;
+        }
+    }
+
+    function gameGo() {
+        console.log('Go Game');
+
+        // Initialize global game engine values
+        gameLevelScore = 0;
+        gameStartTime = new Date().getTime();
+        iForMoles = targets.length;
+        letSoundPlay = [];
+
+        // Start music
+        musicControl().playLevel();
+
+        // Set player's view
+        gameView.value = 'playground';
+
+        // Run engine ...
+        gameEngine.run();
+    }
+
+    function gameGoAgain() {
+        gameLevelCounter.value = 1; // Start at level 1
+        gameOver.visible = false;   // Hide Game Over message
+        player.scores = [0, 0, 0];  // Reset player's scores
+
+        gameGo();
+    }
+
+    function gameStop() {
+        console.log('Stop Game');
+
+        // Set player's level score
+        player.scores[gameLevelCounter.value - 1] = gameScore.value;
+
+        // Reactive vue
+        gameLevelCounter.value++;       // Next level
+        gameScore.value = 0;            // Reset score
+        gameTimer.value = gameDuration; // Reset timer to default
+        gameView.value = 'playerboard'; // Set player's view
+
+        // Stop all music and all sound
+        musicControl().stop();
+        soundControl().stop();
+
+        // Game Over
+        if (gameLevelCounter.value <= gameLevelMax) {
+            return;
+        }
+
+        if (saveHighscore()) {
+            evaluateHighscore();
+        } else {
+            soundControl().playRanked();
+        }
+
+        // Show message
+        gameOver.visible = true;
+
+        // Next id for next game
+        gameId = new Date().getTime();
+    }
+
+    function gameReset() {
+        console.log('Reset Game');
+
+        // Stop intervals !!!
+        gameEngine.stop();
+
+        // Stop all music and all sound
+        musicControl().stop();
+        soundControl().stop();
+
+        // It's just funny
+        soundControl().playLaughingCartoon();
+
+        // Reset vue player
+        player.name = null;
+        player.scores = [0, 0, 0];
+
+        // Reset vue game values
+        gameLevelCounter.value = 1;     // Start at level 1
+        gameOver.visible = false;       // Hide Game Over message
+        gameScore.value = 0;            // Reset score
+        gameTimer.value = gameDuration; // Reset timer to default
+        gameView.value = 'highscore';   // Set player's view
+    }
+
+    function hammerMovement(event) {
+        const playgroundRect = playground.value.getBoundingClientRect();
+        const playgroundHeight = playground.value.clientHeight;
+        const playgroundWidth = playground.value.clientWidth;
+        const hammerHeight = hammer.value.clientHeight;
+        const hammerWidth = hammer.value.clientWidth;
+
+        // Calculate hammer's position within playground
+        let x = event.clientX - playgroundRect.left;
+        let y = event.clientY - playgroundRect.top;
+
+        // Prevent moving hammer outside of playground
+        // Sometimes the hammer moves on if you do mouse over when it's outside of playground
+        if (x > playgroundWidth || y > playgroundHeight || x < 0 || y < 0) {
+            return;
+        }
+
+        // Set hammer on top of the cursor
+        x = x - hammerWidth / 2.6;
+        y = y - hammerHeight;
+
+        // For a fluent movement
+        if (hammerClass.down) {
+            y = y + (hammerHeight / 100 * 20);
+        }
+
+        // Set hammer's position within playground
+        hammer.value.style.left = x + 'px';
+        hammer.value.style.top = y + 'px';
+    }
+
+    function hammerSmackDown() {
+        const hammerHeight = hammer.value.clientHeight;
+        let y = hammer.value.offsetTop;
+        y = y + (hammerHeight / 100 * 20);
+
+        soundControl().playHammerBam();
+
+        hammerClass.up = false;
+        hammerClass.down = true;
+        hammer.value.style.top = y + 'px';
+    }
+
+    function hammerSmackUp() {
+        const hammerHeight = hammer.value.clientHeight;
+        let y = hammer.value.offsetTop;
+        y = y - (hammerHeight / 100 * 20);
+
+        hammerClass.down = false;
+        hammerClass.up = true;
+        hammer.value.style.top = y + 'px';
+    }
+
+    function knockOut(mole) {
+        if (!mole.visible) {
+            return;
+        }
+
+        soundControl().playMoleHit();
+
+        mole.hit = new Date().getTime();
+        mole.visible = false;
+        gameLevelScore += mole.points;
+
+        // Reactive vue
+        gameScore.value = Math.floor(gameLevelScore);
+
+        console.log('Mole ' + mole.id + ' has been knocked out');
+    }
+
+    function loadHighscore() {
+        if (typeof (Storage) === "undefined") {
+            console.log('Load Highscore: No Web Storage Support');
+            return;
+        }
+
+        console.log('Load Highscore');
+
+        let h = JSON.parse(localStorage.getItem(gameHighscoreStorageKey));
+        if (h !== null) {
+            gameHighscores.value = h;
+        }
+    }
+
+    function musicControl() {
+        function playLevel() {
+            if (!toggleMusic.value) {
+                return;
+            }
+
+            let m = music[gameLevelClass.value];
+            m.audio.pause();
+            m.audio.currentTime = 0;
+            m.audio.volume = m.volume;
+            m.audio.play();
+        }
+
+        function stop() {
+            for (let musicKey in music) {
+                music[musicKey].audio.pause();
+            }
+        }
+
+        return {
+            playLevel,
+            stop,
+        };
+    }
+
+    function playerInput() {
+        if (playerInputValue.value.length < 3) {
+            return;
+        }
+
+        gameView.value = 'playerboard';       // Set player's view
+        player.name = playerInputValue.value; // Set player's name
+        playerInputValue.value = '';          // Flush input value
+
+        soundControl().playTada();
+    }
+
+    function saveHighscore() {
+        if (typeof (Storage) === "undefined") {
+            console.log('Save Highscore: No Web Storage Support');
+            return false;
+        }
+
+        console.log('Save Highscore');
+
+        gameHighscores.value.push({
+            id: gameId,
+            timestamp: new Date(),
+            player: player.name,
+            scores: player.scores,
+            totalScore: player.totalScore,
+        });
+        gameHighscores.value.sort(function (a, b) {
+            let aa = a.totalScore;
+            let bb = b.totalScore;
+
+            return (aa > bb) ? -1 : (aa < bb) ? 1 : 0;
+        });
+        gameHighscores.value.splice(gameHighscoreMax, 1); // Top 10 (push 1 remove 1 or 0)
+
+        localStorage.setItem(gameHighscoreStorageKey, JSON.stringify(gameHighscores.value));
+
+        return true;
+    }
+
+    function soundControl() {
+        function playHammerBam() {
+            if (!toggleSound.value) {
+                return;
+            }
+
+            let audio = new Audio('./media/sound-hammer-bam.m4a');
+            audio.currentTime = 0.4;
+            audio.volume = 0.8;
+
+            let idx = letSoundPlay.push(audio);
+            letSoundPlay[idx - 1].play();
+        }
+
+        function playHighscore() {
+            if (!toggleSound.value) {
+                return;
+            }
+
+            playRanked();
+
+            sound.highscore.audio.currentTime = sound.highscore.currentTime;
+            sound.highscore.audio.volume = sound.highscore.volume;
+            sound.highscore.audio.play();
+        }
+
+        function playLaughingCartoon() {
+            if (!toggleSound.value) {
+                return;
+            }
+
+            sound.laughingCartoon.audio.currentTime = sound.laughingCartoon.currentTime;
+            sound.laughingCartoon.audio.volume = sound.laughingCartoon.volume;
+            sound.laughingCartoon.audio.play();
+        }
+
+        function playLost() {
+            if (!toggleSound.value) {
+                return;
+            }
+
+            sound.lost.audio.currentTime = sound.lost.currentTime;
+            sound.lost.audio.volume = sound.lost.volume;
+            sound.lost.audio.play();
+        }
+
+        function playMoleGiggling() {
+            if (!toggleSound.value) {
+                return;
+            }
+
+            let audio = new Audio('./media/sound-mole-giggling.m4a');
+            audio.currentTime = 0.4;
+            audio.volume = 0.2;
+
+            let idx = letSoundPlay.push(audio);
+            letSoundPlay[idx - 1].play();
+        }
+
+        function playMoleHit() {
+            if (!toggleSound.value) {
+                return;
+            }
+
+            let audio = new Audio('./media/sound-mole-hit.m4a');
+            audio.currentTime = 0.4;
+            audio.volume = 0.4;
+
+            // To keep the reference of the sound
+            // So it plays until the end and will not be restarted like in playTada()
+            let idx = letSoundPlay.push(audio);
+            letSoundPlay[idx - 1].play();
+        }
+
+        function playRanked() {
+            if (!toggleSound.value) {
+                return;
+            }
+
+            sound.ranked.audio.currentTime = sound.ranked.currentTime;
+            sound.ranked.audio.volume = sound.ranked.volume;
+            sound.ranked.audio.play();
+        }
+
+        function playTada() {
+            if (!toggleSound.value) {
+                return;
+            }
+
+            sound.tada.audio.currentTime = sound.tada.currentTime;
+            sound.tada.audio.volume = sound.tada.volume;
+            sound.tada.audio.play();
+        }
+
+        function stop() {
+            for (let soundKey in sound) {
+                sound[soundKey].audio.pause();
+            }
+        }
+
+        return {
+            playHammerBam,
+            playHighscore,
+            playLaughingCartoon,
+            playLost,
+            playMoleGiggling,
+            playMoleHit,
+            playRanked,
+            playTada,
+            stop,
+        };
+    }
+
+    function timestampToLocaleString(timestamp) {
+        let date = new Date(timestamp);
+
+        return date.toLocaleString();
+    }
+
+    createApp({
+        components: {},
+        methods: {
+            gameGo,
+            gameGoAgain,
+            gameReset,
+            hammerMovement,
+            hammerSmackDown,
+            hammerSmackUp,
+            knockOut,
+            playerInput,
+            timestampToLocaleString,
+        },
+        setup() {
+            loadHighscore();
+
+            return {
+                gameHighscores,
+                gameLevel,
+                gameLevelClass,
+                gameLevelCounter,
+                gameLevelMax,
+                gameOver,
+                gameScore,
+                gameTimer,
+                gameView,
+                hammer,
+                hammerClass,
+                player,
+                playerInputValue,
+                playground,
+                targets,
+                toggleMusic,
+                toggleMusicState,
+                toggleSound,
+                toggleSoundState,
+            };
+        },
+    }).mount('#app');
+</script>
+
+</body>
+</html>

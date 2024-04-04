@@ -1,0 +1,362 @@
+textarea:focus, input:focus {
+    outline: none;
+}
+
+#console {
+    line-height: 0;
+    background-color: black;
+}
+
+#highscore {
+    line-height: 0;
+    position: relative;
+    font-size: 1.4em;
+    font-weight: bold;
+    text-align: center;
+}
+
+#highscore-headline {
+    position: absolute;
+    bottom: 70%;
+    left: 0;
+    right: 0;
+    font-size: 1.8em;
+}
+
+#highscore-table {
+    line-height: 0;
+    position: absolute;
+    top: 34%;
+    bottom: 0;
+    left: 14%;
+    right: 14%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    animation: rotate-x 1s ease-in-out, rotate-y 1s ease-in-out;
+}
+
+#highscore-table > div {
+    line-height: 0;
+    display: flex;
+    flex-flow: row wrap;
+}
+
+#highscore-table > div div:nth-child(1) {
+    width: 40%;
+}
+
+#highscore-table > div div:nth-child(2) {
+    width: 20%;
+}
+
+#highscore-table > div div:nth-child(3) {
+    width: 40%;
+}
+
+#infobar {
+    line-height: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    background-color: orangered;
+    padding: 2% 0 2% 0;
+}
+
+#infobar div {
+    font-weight: bold;
+    color: white;
+    margin: 0 2% 0 2%;
+    width: 26%;
+}
+
+#infobar div:nth-child(1), #infobar div:nth-child(2) {
+    width: 16%;
+}
+
+#hammer {
+    line-height: 0;
+    z-index: 100;
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    width: 16%;
+    border-radius: 100%;
+}
+
+#hammer.down {
+    transform: rotate(-48deg);
+}
+
+#hammer.up {
+    transition: transform 0.1s ease-out, position 0.08s ease-out;
+}
+
+#hammer img {
+    z-index: 0;
+    position: relative;
+    width: 100%;
+    height: auto;
+}
+
+#landscape, #landscape1, #landscape2 {
+    z-index: 0;
+    position: relative;
+    height: auto;
+    width: 100%;
+}
+
+#pit01 {
+    bottom: 42%;
+    left: 60%;
+    width: 6%;
+}
+
+#pit02 {
+    bottom: 42%;
+    left: 4%;
+    width: 8%;
+}
+
+#pit03 {
+    bottom: 44%;
+    left: 30%;
+    width: 10%;
+}
+
+#pit04 {
+    bottom: 38%;
+    left: 84%;
+    width: 10%;
+}
+
+#pit05 {
+    bottom: 30%;
+    left: 46%;
+    width: 14%;
+}
+
+#pit06 {
+    bottom: 24%;
+    left: 20%;
+    width: 16%;
+}
+
+#pit07 {
+    bottom: 24%;
+    left: 74%;
+    width: 16%;
+}
+
+#pit08 {
+    bottom: 10%;
+    left: 54%;
+    width: 18%;
+}
+
+#pit09 {
+    bottom: 3%;
+    left: 10%;
+    width: 20%;
+}
+
+#pit10 {
+    bottom: 1%;
+    left: 34%;
+    width: 21%;
+}
+
+#playbutton {
+    line-height: 0;
+    position: absolute;
+    top: 50%;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: center;
+}
+
+#playbutton button {
+    line-height: 0;
+    height: 28%;
+    width: 28%;
+    font-size: 1.4em;
+    font-weight: bold;
+    background-color: orangered;
+    border: 4px solid white;
+    color: white;
+}
+
+#playerboard {
+    line-height: 0;
+    position: relative;
+    font-size: 1.4em;
+    font-weight: bold;
+    text-align: center;
+}
+
+#playground {
+    line-height: 0;
+    position: relative;
+    background-color: green;
+    cursor: crosshair;
+}
+
+#scorecard {
+    line-height: 0;
+    position: absolute;
+    top: 26%;
+    bottom: 50%;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: center;
+    animation: rotate-y 1s ease-in-out;
+}
+
+#scorecard-headline {
+    position: absolute;
+    bottom: 70%;
+    left: 0;
+    right: 0;
+    font-size: 1.8em;
+    animation: rotate-x 1s ease-in-out;
+}
+
+#settings {
+    line-height: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    background-color: saddlebrown;
+    border-top: 2px solid sandybrown;
+    padding: 2% 0 2% 0;
+}
+
+#settings div {
+    font-weight: bold;
+    color: white;
+    margin: 0 2% 0 2%;
+    width: 16%;
+}
+
+#settings div:nth-child(1) {
+    width: 36%;
+}
+
+#settings input {
+    font-weight: bold;
+    color: white;
+    border: 0;
+    background-color: chocolate;
+    min-width: 0;
+    max-width: 50%;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.dirt.visible {
+    animation: dirt 0.4s linear;
+}
+
+.pit {
+    line-height: 0;
+    position: absolute;
+}
+
+.pit img {
+    z-index: 0;
+    position: relative;
+    height: auto;
+    width: 100%;
+}
+
+.pit div.mole {
+    position: absolute;
+    overflow: hidden;
+    bottom: 50%;
+    left: 0;
+}
+
+.pit div.mole img {
+    margin-bottom: -150%;
+}
+
+.pit div.mole img.visible.level1 {
+    animation: mole-visible 2.1s ease-in-out infinite;
+}
+
+.pit div.mole img.visible.level2 {
+    animation: mole-visible 1.6s linear infinite;
+}
+
+.pit div.mole img.visible.level3 {
+    animation: mole-visible 1.1s ease-out infinite;
+}
+
+.puls {
+    animation: puls 1s ease-in-out infinite;
+}
+
+@keyframes dirt {
+    0% {
+        transform: rotate(0deg);
+    }
+    20% {
+        transform: rotate(-6deg);
+    }
+    40% {
+        transform: rotate(6deg);
+    }
+    60% {
+        transform: rotate(-6deg);
+    }
+    80% {
+        transform: rotate(6deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes mole-visible {
+    0% {
+        margin-bottom: -150%;
+    }
+    50% {
+        margin-bottom: -40%;
+    }
+    80% {
+        margin-bottom: -150%;
+    }
+}
+
+@keyframes puls {
+    50% {
+        transform: scale(1.4);
+    }
+}
+
+@keyframes rotate-x {
+    0% {
+        transform: rotateX(0deg);
+    }
+    100% {
+        transform: rotateX(360deg);
+    }
+}
+
+@keyframes rotate-y {
+    0% {
+        transform: rotateY(0deg);
+    }
+    100% {
+        transform: rotateY(360deg);
+    }
+}
